@@ -172,9 +172,6 @@ def today(page_id):
 
     courseNumbers = []
     courses = sph.getCourses()
-    courseNumbers.append('m5')
-    courseNumbers.append('et5')
-    courseNumbers.append("sPA5")
 
     for course in courses:
         courseNumbers.append(sph.parseCourseNumbers(course))
