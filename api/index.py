@@ -51,7 +51,6 @@ class Sph:
             "user": "5220." + self.username,
             "password": self.password
         }
-        print(self.password)
         response = requests.post("https://login.schulportal.hessen.de/?i=5220", headers=loginHeaders, data=data)
         for cookie in response.cookies:
             if cookie.name == 'sid':
@@ -63,7 +62,6 @@ class Sph:
                     "sid": cookie.value,
                     "SPH-Session": "572feaefbf77008b4c7954e9f5896f379fb358987c3234d27dedff86ad484c59"
                 }
-                print(self.cookies)
                 return cookie.value
                 
     def requestSph(self, route):
@@ -71,22 +69,28 @@ class Sph:
         soup = BeautifulSoup(response.text, 'html.parser')
         return soup
     
-    def getVPlan(self):
+    def getVPlan(self, day):
+        if day not in [0, 1]:
+            raise ValueError("Day parameter must be 0 or 1")
+
         site = self.requestSph("vertretungsplan.php")
-        table = site.select_one('table[id*=vtable]')
+
+        table = site.find('table[id*=vtable]')
         tableArray = []
 
-        if table:
-            rows = table.find_all('tr')
-            for row in rows:
-                rowArray = []
-                cells = row.find_all('td')
-                if len(cells) >= 8: 
-                    for x in range(7):
-                        rowArray.append(cells[x].get_text(strip=True))
-                if len(rowArray) > 0:
-                    tableArray.append(rowArray)
+        tables = site.find_all("table", id=lambda x: x and "vtable" in x)
 
+        rows = tables[day].find_all('tr')
+        for row in rows:
+            rowArray = []
+            cells = row.find_all('td')
+            if len(cells) >= 8: 
+                for x in range(7):
+                    rowArray.append(cells[x].get_text(strip=True))
+            if len(rowArray) > 0:
+                tableArray.append(rowArray)
+
+        print(tableArray)
         return tableArray
     
     def getCourses(self):
@@ -127,9 +131,6 @@ class Sph:
                 "entry": homework_index
             })
 
-
-
-        print(homework)
         return homework
     
     def parseCourseNumbers(self, course):
@@ -152,13 +153,17 @@ class Sph:
 def home():
     return {"message": "Welcome to sph-api"}
 
-@app.get("/today")
-def today():
+@app.get("/plan/<int:page_id>")
+def today(page_id):
+    
+    if page_id > 1 or None:
+        return {"error": "Plan index out of range [0-1]"}, 400 
+
     username = request.args.get('username')
     password = request.args.get('password')
 
     if password == None or username == None:
-        return {"message": "Missing parameters"}, 400 
+        return {"error": "Missing parameters"}, 400 
 
     sph = Sph(username, password)
 
@@ -175,7 +180,7 @@ def today():
     if len(courseNumbers) == 0:
         return {"error": "Could not get user courses"}, 500
 
-    vplan = sph.getVPlan()
+    vplan = sph.getVPlan(page_id)
     
     vplanCourses = []
 
