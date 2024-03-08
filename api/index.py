@@ -190,8 +190,12 @@ def today(page_id):
             lowerArray = [x.lower() for x in courseNumbers]
             if entry[4].lower() in lowerArray:
                 vplanCourses.append(entry)
+    
+    headers = {}
+    for i, row in enumerate(vplanCourses, start=1):
+        headers[str(i)] = row
 
-    return vplanCourses
+    return headers
 
 @app.get('/classes')
 def classes():
