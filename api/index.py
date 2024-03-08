@@ -67,9 +67,7 @@ class Sph:
                 return cookie.value
                 
     def requestSph(self, route):
-        print(self.cookies, sphHeaders)
         response = requests.post("https://start.schulportal.hessen.de/" + route, cookies=self.cookies,  headers=sphHeaders)
-        print(response)
         soup = BeautifulSoup(response.text, 'html.parser')
         return soup
     
@@ -98,6 +96,42 @@ class Sph:
         
         return data
     
+    def getHomework(self):
+        site = self.requestSph("meinunterricht.php")
+        homework_divs = site.find_all("div", class_=lambda c: c and "realHomework" in c)
+
+        homework = []
+
+        for div in homework_divs:
+            content = div.get_text(strip=True)
+
+            printable_parent = div.find_parent("tr", class_="printable")
+            homework_index = printable_parent.get("data-entry")
+            homework_id = printable_parent.get("data-book")
+            
+            span_name = printable_parent.find("span", class_="name")
+
+            content_decoded = content.encode("utf-8").decode("utf-8")
+
+            homeworkObj = {
+                "class": span_name.get_text(strip=True).split(" ")[0],
+                "content": content_decoded
+            }
+
+            homework.append(homeworkObj)
+
+            # mark as done
+            requests.post("https://start.schulportal.hessen.de/meinunterricht.php" , cookies=self.cookies,  headers=sphHeaders, data= {
+                "a": "sus_homeworkDone",
+                "id": homework_id,
+                "entry": homework_index
+            })
+
+
+
+        print(homework)
+        return homework
+    
     def parseCourseNumbers(self, course):
         start_index = course.find("(")
         if start_index != -1:
@@ -116,7 +150,7 @@ class Sph:
 
 @app.route('/')
 def home():
-    return 'Hello, World!'
+    return {"message": "Welcome to sph-api"}
 
 @app.get("/today")
 def today():
@@ -124,12 +158,12 @@ def today():
     password = request.args.get('password')
 
     if password == None or username == None:
-        return {"message": "Missing parameters"}
+        return {"message": "Missing parameters"}, 400 
 
     sph = Sph(username, password)
 
     if "sid" not in sph.cookies:
-        return {"error": "Incorrect password or username"}
+        return {"error": "Incorrect password or username"}, 401 
 
     courseNumbers = []
     courses = sph.getCourses()
@@ -139,7 +173,7 @@ def today():
         courseNumbers.append(sph.parseCourseNumbers(course))
 
     if len(courseNumbers) == 0:
-        return {"error": "Could not get user courses"}
+        return {"error": "Could not get user courses"}, 500
 
     vplan = sph.getVPlan()
     
@@ -152,3 +186,25 @@ def today():
                 vplanCourses.append(entry)
 
     return vplanCourses
+
+@app.get('/classes')
+def classes():
+    username = request.args.get('username')
+    password = request.args.get('password')
+
+    if password == None or username == None:
+        return {"message": "Missing parameters"}, 400 
+
+    sph = Sph(username, password)
+
+    if "sid" not in sph.cookies:
+        return {"error": "Incorrect password or username"}, 401 
+    
+    homework = sph.getHomework()
+
+    return homework
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return
