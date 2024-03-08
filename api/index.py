@@ -159,8 +159,8 @@ def today(page_id):
     if page_id > 1 or None:
         return {"error": "Plan index out of range [0-1]"}, 400 
 
-    username = request.args.get('username')
-    password = request.args.get('password')
+    username = request.headers.get('username')
+    password = request.headers.get('password')
 
     if password == None or username == None:
         return {"error": "Missing parameters"}, 400 
@@ -194,8 +194,8 @@ def today(page_id):
 
 @app.get('/classes')
 def classes():
-    username = request.args.get('username')
-    password = request.args.get('password')
+    username = request.headers.get('username')
+    password = request.headers.get('password')
 
     if password == None or username == None:
         return {"message": "Missing parameters"}, 400 
