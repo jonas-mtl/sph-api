@@ -2,6 +2,9 @@ from flask import Flask, request
 import requests
 from bs4 import BeautifulSoup
 
+
+API_VERSION = "1.0.0"
+
 app = Flask(__name__)
             
 sphHeaders = {
@@ -72,9 +75,7 @@ class Sph:
     def getVPlan(self):
         site = self.requestSph("vertretungsplan.php")
 
-        planObj = {
-            
-        }
+        planObj = {}
 
         tables = site.find_all("table", id=lambda x: x and "vtable" in x)
         buttons = site.find_all("button", class_=lambda x: x and "btn-info" in x)
@@ -134,7 +135,7 @@ class Sph:
             span_undone = printable_parent.find("span", class_="undone")
 
             if not span_undone: continue
-            
+
             content_decoded = content.encode("utf-8").decode("utf-8")
 
             homeworkObj = {
@@ -172,6 +173,10 @@ class Sph:
 @app.route('/')
 def home():
     return {"message": "Welcome to sph-api"}
+
+@app.route('/version')
+def version():
+    return API_VERSION
 
 @app.get("/plan")
 def today():
