@@ -69,29 +69,46 @@ class Sph:
         soup = BeautifulSoup(response.text, 'html.parser')
         return soup
     
-    def getVPlan(self, day):
-        if day not in [0, 1]:
-            raise ValueError("Day parameter must be 0 or 1")
-
+    def getVPlan(self):
         site = self.requestSph("vertretungsplan.php")
 
-        table = site.find('table[id*=vtable]')
-        tableArray = []
+        planObj = {
+            
+        }
 
         tables = site.find_all("table", id=lambda x: x and "vtable" in x)
+        buttons = site.find_all("button", class_=lambda x: x and "btn-info" in x)
 
-        rows = tables[day].find_all('tr')
-        for row in rows:
-            rowArray = []
-            cells = row.find_all('td')
-            if len(cells) >= 8: 
-                for x in range(7):
-                    rowArray.append(cells[x].get_text(strip=True))
-            if len(rowArray) > 0:
-                tableArray.append(rowArray)
+        i = 0
+        for table in tables:
+            rows = table.find_all('tr')
+            for row in rows:
+                rowArray = {}
+                cells = row.find_all('td')
+                if len(cells) >= 8: 
+                    rowArray["stunde"] = cells[0].get_text(strip=True)
+                    rowArray["klasse"] = cells[1].get_text(strip=True) 
+                    rowArray["lehrkraft"] = cells[2].get_text(strip=True)
+                    rowArray["art"] = cells[3].get_text(strip=True)
+                    rowArray["fach"] = cells[4].get_text(strip=True) 
+                    rowArray["raum"] = cells[5].get_text(strip=True)
+                    rowArray["raum_alt"] = cells[6].get_text(strip=True) 
+                    rowArray["hinweis"] = cells[7].get_text(strip=True)
 
-        print(tableArray)
-        return tableArray
+                if rowArray:
+                    button_text = ""
+                    if ( i == 0 ): 
+                        button_text = buttons[0].get_text(strip=True).split(",")[0]
+                    if ( i == 1 ): 
+                        button_text = buttons[1].get_text(strip=True).split(",")[0]
+
+                    if button_text in planObj:
+                        planObj[button_text].append(rowArray)
+                    else:
+                        planObj[button_text] = [rowArray]
+            i += 1
+
+        return planObj
     
     def getCourses(self):
         courses = self.requestSph("lerngruppen.php")
@@ -114,7 +131,10 @@ class Sph:
             homework_id = printable_parent.get("data-book")
             
             span_name = printable_parent.find("span", class_="name")
+            span_undone = printable_parent.find("span", class_="undone")
 
+            if not span_undone: continue
+            
             content_decoded = content.encode("utf-8").decode("utf-8")
 
             homeworkObj = {
@@ -153,12 +173,8 @@ class Sph:
 def home():
     return {"message": "Welcome to sph-api"}
 
-@app.get("/plan/<int:page_id>")
-def today(page_id):
-    
-    if page_id > 1 or None:
-        return {"error": "Plan index out of range [0-1]"}, 400 
-
+@app.get("/plan")
+def today():
     username = request.headers.get('username')
     password = request.headers.get('password')
 
@@ -179,21 +195,20 @@ def today(page_id):
     if len(courseNumbers) == 0:
         return {"error": "Could not get user courses"}, 500
 
-    vplan = sph.getVPlan(page_id)
+    vplan = sph.getVPlan()
     
-    vplanCourses = []
+    vplanCourses = {}
+    for key in vplan:
+        vplanCourses[key] = []
 
-    for entry in vplan:
-        if len(entry) > 4:
-            lowerArray = [x.lower() for x in courseNumbers]
-            if entry[4].lower() in lowerArray:
-                vplanCourses.append(entry)
-    
-    headers = {}
-    for i, row in enumerate(vplanCourses, start=1):
-        headers[str(i)] = row
+    for key in vplan:
+        for entry in vplan[key]:
+            if len(entry) > 4:
+                lowerArray = [x.lower() for x in courseNumbers]
+                if entry["fach"].lower() in lowerArray:
+                    vplanCourses[key].append(entry)
 
-    return headers
+    return vplanCourses
 
 @app.get('/classes')
 def classes():
