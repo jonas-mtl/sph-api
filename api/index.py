@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, redirect
 import requests
 from bs4 import BeautifulSoup
 
@@ -177,6 +177,10 @@ def home():
 @app.route('/version')
 def version():
     return API_VERSION
+
+@app.route('/ios')
+def ios():
+    return redirect("https://github.com/jonas-mtl/sph-api/tree/main/ios", code=302)
 
 @app.get("/plan")
 def today():
