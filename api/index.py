@@ -1,9 +1,10 @@
+import base64
 from flask import Flask, request, redirect
 import requests
 from bs4 import BeautifulSoup
 
 
-API_VERSION = "1.0.0"
+API_VERSION = "1.0.1"
 
 app = Flask(__name__)
             
@@ -118,7 +119,7 @@ class Sph:
         
         return data
     
-    def getHomework(self):
+    def getHomework(self, include_files):
         site = self.requestSph("meinunterricht.php")
         homework_divs = site.find_all("div", class_=lambda c: c and "realHomework" in c)
 
@@ -138,9 +139,27 @@ class Sph:
 
             content_decoded = content.encode("utf-8").decode("utf-8")
 
+
+            # get files
+            files_data_array = []
+
+            div_files = printable_parent.find("div", class_="btn-group files")
+            if (div_files and include_files):
+                a_files_array = div_files.find_all("a", class_="file")
+
+                for a_file in a_files_array:
+                    data_file_name = a_file.get("data-file")
+                    file_res = requests.get(f"https://start.schulportal.hessen.de/meinunterricht.php?a=downloadFile&id={homework_id}&e={homework_index}&f={data_file_name}", 
+                                cookies=self.cookies,  
+                                headers=sphHeaders
+                                )
+                    files_data_array.append(base64.b64encode(file_res.content).decode())
+
+
             homeworkObj = {
                 "class": span_name.get_text(strip=True).split(" ")[0],
-                "content": content_decoded
+                "content": content_decoded,
+                "files": files_data_array
             }
 
             homework.append(homeworkObj)
@@ -221,10 +240,11 @@ def today():
 
 @app.get('/classes')
 def classes():
+    include_files = request.args.get('include-files')
     username = request.headers.get('username')
     password = request.headers.get('password')
 
-    if password == None or username == None:
+    if password == None or username == None or include_files == None or include_files.lower() not in ["false", "true"]:
         return {"message": "Missing parameters"}, 400 
 
     sph = Sph(username, password)
@@ -232,7 +252,10 @@ def classes():
     if "sid" not in sph.cookies:
         return {"error": "Incorrect password or username"}, 401 
     
-    homework = sph.getHomework()
+    if (include_files.lower() == "true"): include_files = True 
+    else: include_files = False 
+
+    homework = sph.getHomework(include_files)
 
     return homework
 
