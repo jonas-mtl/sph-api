@@ -24,9 +24,9 @@
 
 ---
 
-`/classes` - Aktuelle Hausaufgaben
+`/classes?include-files=[true/false]` - Aktuelle Hausaufgaben
 
-_(Hausaufgaben werden als erledigt gekennzeichnet, wenn diese route aufgerufen wird)_
+_(Hausaufgaben werden als erledigt gekennzeichnet, wenn diese route aufgerufen wird!)_
 
 #### Examle Response:
 
