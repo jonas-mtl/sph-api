@@ -102,7 +102,7 @@ class Sph:
                     if ( i == 0 ): 
                         button_text = buttons[0].get_text(strip=True).split(",")[0]
                     if ( i == 1 ): 
-                        button_text = buttons[1].get_text(strip=True).split(",")[0]
+                        button_text = buttons[0].get_text(strip=True).split(",")[0]
 
                     if button_text in planObj:
                         planObj[button_text].append(rowArray)
