@@ -80,7 +80,7 @@ class Sph:
 
         tables = site.find_all("table", id=lambda x: x and "vtable" in x)
         buttons = site.find_all("button", class_=lambda x: x and "btn-info" in x)
-        buttons.append(site.find_all("button", class_=lambda x: x and "btn-primary" in x))
+        buttons_first = site.find_all("button", class_=lambda x: x and "btn-primary" in x))
 
         i = 0
         for table in tables:
@@ -101,9 +101,9 @@ class Sph:
                 if rowArray:
                     button_text = ""
                     if ( i == 0 ): 
-                        button_text = buttons[0].get_text(strip=True).split(",")[0]
+                        button_text = buttons_first[0].get_text(strip=True).split(",")[0]
                     if ( i == 1 ): 
-                        button_text = buttons[1].get_text(strip=True).split(",")[0]
+                        button_text = buttons[0].get_text(strip=True).split(",")[0]
 
                     if button_text in planObj:
                         planObj[button_text].append(rowArray)
