@@ -80,7 +80,7 @@ class Sph:
 
         tables = site.find_all("table", id=lambda x: x and "vtable" in x)
         buttons = site.find_all("button", class_=lambda x: x and "btn-info" in x)
-        buttons_first = site.find_all("button", class_=lambda x: x and "btn-primary" in x))
+        buttons_first = site.find_all("button", class_=lambda x: x and "btn-primary" in x)
 
         i = 0
         for table in tables:
